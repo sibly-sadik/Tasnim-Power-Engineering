@@ -2460,37 +2460,42 @@ function TasnimApp() {
 
   useEffect(() => {
     async function loadData() {
-      // Products
-      const { data: pData } = await supabase.from('products').select('*');
-      if (pData && pData.length > 0) {
-        setProducts(pData);
-      } else {
+      try {
+        // Products
+        const { data: pData } = await supabase.from('products').select('*');
+        if (pData && pData.length > 0) {
+          setProducts(pData);
+        } else {
+          setProducts(DEFAULT_PRODUCTS);
+          // Ensure default products are correctly mapped to DB
+          const productsToInsert = DEFAULT_PRODUCTS.map(p => ({
+            ...p,
+            id: p.id.toString(),
+          }));
+          await supabase.from('products').insert(productsToInsert).select();
+        }
+        
+        // Orders
+        const { data: oData } = await supabase.from('orders').select('*').order('date', { ascending: false });
+        if (oData && oData.length > 0) setOrders(oData);
+
+        // Customers
+        const { data: cData } = await supabase.from('customers').select('*');
+        if (cData && cData.length > 0) setCustomers(cData);
+
+        // Settings
+        const { data: sData } = await supabase.from('settings').select('*');
+        if (sData && sData.length > 0) {
+          const getSetting = (key: string) => sData.find(s => s.key === key)?.value;
+          const w = getSetting('whatsapp_number'); if (w !== undefined) setWhatsappNumber(w);
+          const pp = getSetting('payment_phone'); if (pp !== undefined) setPaymentPhoneNumber(pp);
+          const cn = getSetting('company_name'); if (cn !== undefined) setCompanyName(cn);
+          const cat = getSetting('categories'); if (cat !== undefined) setCategories(cat);
+          const ds = getSetting('delivery_settings'); if (ds !== undefined) setDeliverySettings(ds);
+        }
+      } catch (err) {
+        console.error('Failed to fetch from Supabase:', err);
         setProducts(DEFAULT_PRODUCTS);
-        // Ensure default products are correctly mapped to DB
-        const productsToInsert = DEFAULT_PRODUCTS.map(p => ({
-          ...p,
-          id: p.id.toString(),
-        }));
-        await supabase.from('products').insert(productsToInsert).select();
-      }
-      
-      // Orders
-      const { data: oData } = await supabase.from('orders').select('*').order('date', { ascending: false });
-      if (oData && oData.length > 0) setOrders(oData);
-
-      // Customers
-      const { data: cData } = await supabase.from('customers').select('*');
-      if (cData && cData.length > 0) setCustomers(cData);
-
-      // Settings
-      const { data: sData } = await supabase.from('settings').select('*');
-      if (sData && sData.length > 0) {
-        const getSetting = (key: string) => sData.find(s => s.key === key)?.value;
-        const w = getSetting('whatsapp_number'); if (w !== undefined) setWhatsappNumber(w);
-        const pp = getSetting('payment_phone'); if (pp !== undefined) setPaymentPhoneNumber(pp);
-        const cn = getSetting('company_name'); if (cn !== undefined) setCompanyName(cn);
-        const cat = getSetting('categories'); if (cat !== undefined) setCategories(cat);
-        const ds = getSetting('delivery_settings'); if (ds !== undefined) setDeliverySettings(ds);
       }
 
       // Local storage items
